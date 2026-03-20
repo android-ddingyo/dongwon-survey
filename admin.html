@@ -492,7 +492,20 @@
       </div>
       <div class="form-group">
         <label>응답 마감일</label>
-        <input type="date" id="surveyDeadline">
+        <input type="datetime-local" id="surveyDeadline">
+        <div class="hint">한국 시간(KST) 기준으로 입력하세요.</div>
+      </div>
+      <div class="form-group">
+        <label>응답 방식</label>
+        <div style="display:flex;gap:16px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
+            <input type="radio" name="anonymousType" value="named" checked onchange="surveyAnonymous=false"> 기명 (이름 입력)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
+            <input type="radio" name="anonymousType" value="anonymous" onchange="surveyAnonymous=true"> 익명
+          </label>
+        </div>
+        <div class="hint">익명 설문은 응답자 이름 없이 저장됩니다. 중복 제출은 브라우저 기반으로 차단됩니다.</div>
       </div>
     </div>
 
@@ -573,6 +586,16 @@ window.onload = () => {
   }
 };
 
+let surveyAnonymous = false;
+
+function formatKST(date) {
+  return date.toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
 function initApp() {
   gasUrl = localStorage.getItem('gasUrl') || '';
   if (gasUrl) {
@@ -584,7 +607,9 @@ function initApp() {
   addQuestion('radio');
   // 마감일 기본값 (오늘+7일)
   const d = new Date(); d.setDate(d.getDate()+7);
-  document.getElementById('surveyDeadline').value = d.toISOString().split('T')[0];
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('surveyDeadline').value =
+    `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T18:00`;
 }
 
 function saveGasUrl() {
@@ -676,12 +701,15 @@ async function createSurvey() {
   btn.disabled = true; btn.textContent = '생성 중...';
 
   try {
+    const deadlineVal = document.getElementById('surveyDeadline').value;
     const payload = {
       action: 'create_survey',
       title,
       description: document.getElementById('surveyDesc').value.trim(),
       questions: questions.map(q => ({ type: q.type, label: q.label, options: q.options })),
-      deadline: document.getElementById('surveyDeadline').value
+      deadline: deadlineVal ? new Date(deadlineVal).toISOString() : '',
+      deadlineDisplay: deadlineVal ? formatKST(new Date(deadlineVal)) : '',
+      anonymous: surveyAnonymous
     };
     const res = await callGAS(payload);
     if (res.status === 'ok') {
@@ -754,7 +782,7 @@ async function loadSurveys() {
               <div class="survey-row-title">${s.title}</div>
               <div class="survey-row-meta">
                 <span>생성: ${s.created}</span>
-                <span class="deadline-badge">마감: ${s.deadline || '미설정'}</span>
+                <span class="deadline-badge">마감: ${s.deadlineDisplay || (s.deadline ? formatKST(new Date(s.deadline)) : '미설정')}</span>
                 <span class="count-badge">응답 ${s.count}건</span>
               </div>
               <div class="link-box" style="margin-top:8px">${url}</div>

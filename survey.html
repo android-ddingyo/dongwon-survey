@@ -266,6 +266,22 @@ let answers = {};
 let gasUrl = '';
 let surveyId = '';
 
+function formatKST(date) {
+  return date.toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function alreadySubmitted() {
+  return localStorage.getItem('submitted_' + surveyId) === 'yes';
+}
+
+function markSubmitted() {
+  localStorage.setItem('submitted_' + surveyId, 'yes');
+}
+
 window.onload = async () => {
   const params = new URLSearchParams(window.location.search);
   surveyId = params.get('id');
@@ -276,10 +292,24 @@ window.onload = async () => {
     return;
   }
 
+  // 브라우저 기반 중복 제출 체크
+  if (alreadySubmitted()) {
+    showError('이미 응답하셨습니다.', '이 설문에 이미 응답하셨습니다. 중복 제출은 허용되지 않습니다.');
+    return;
+  }
+
   try {
     const res = await callGAS({ action: 'get_survey', id: surveyId });
     if (res.status === 'ok') {
       surveyData = res;
+      // 마감일 체크
+      if (surveyData.deadline) {
+        const deadline = new Date(surveyData.deadline);
+        if (new Date() > deadline) {
+          showError('마감된 설문입니다.', `이 설문은 ${formatKST(deadline)}에 마감되었습니다.`);
+          return;
+        }
+      }
       renderSurvey();
     } else {
       showError('설문을 찾을 수 없습니다.', res.message || '링크가 만료되었거나 존재하지 않는 설문입니다.');
@@ -292,7 +322,7 @@ window.onload = async () => {
 function renderSurvey() {
   const d = surveyData;
   const deadlineHtml = d.deadline
-    ? `<div class="deadline-info">마감일: ${d.deadline}</div>`
+    ? `<div class="deadline-info">마감일: ${formatKST(new Date(d.deadline))}</div>`
     : '';
 
   const questionsHtml = d.questions.map((q, idx) => {
@@ -338,11 +368,15 @@ function renderSurvey() {
       ${deadlineHtml}
     </div>
 
+    ${!d.anonymous ? `
     <div class="respondent-card">
       <label>이름 *</label>
       <input type="text" id="respondentName" placeholder="본인 이름을 입력하세요">
       <div class="error-msg" id="err-name">이름을 입력해 주세요.</div>
-    </div>
+    </div>` : `
+    <div class="respondent-card" style="background:var(--accent-light);border-color:#c5d9c9;">
+      <div style="font-size:13px;color:var(--accent);font-weight:500;">익명 설문입니다. 응답자 정보가 수집되지 않습니다.</div>
+    </div>`}
 
     ${questionsHtml}
 
@@ -382,15 +416,19 @@ function hideError(qIdx) {
 }
 
 async function submitSurvey() {
-  const name = document.getElementById('respondentName').value.trim();
+  const isAnonymous = surveyData.anonymous;
+  const nameEl = document.getElementById('respondentName');
+  const name = isAnonymous ? '익명' : (nameEl ? nameEl.value.trim() : '');
   let valid = true;
 
-  // 이름 검증
-  if (!name) {
-    document.getElementById('err-name').classList.add('show');
-    valid = false;
-  } else {
-    document.getElementById('err-name').classList.remove('show');
+  // 이름 검증 (기명 설문만)
+  if (!isAnonymous) {
+    if (!name) {
+      document.getElementById('err-name').classList.add('show');
+      valid = false;
+    } else {
+      document.getElementById('err-name').classList.remove('show');
+    }
   }
 
   // 질문 검증 (텍스트는 선택)
@@ -416,16 +454,22 @@ async function submitSurvey() {
       surveyId,
       respondent: name,
       questionLabels,
-      answers: answersArr
+      answers: answersArr,
+      checkDuplicate: !isAnonymous
     });
 
     if (res.status === 'ok') {
+      // 브라우저 기반 중복 제출 방지 기록
+      markSubmitted();
+      const displayName = isAnonymous ? '' : name + '님의 ';
       document.getElementById('mainContainer').innerHTML = `
         <div class="state-screen">
           <div class="state-icon">✅</div>
           <h2>제출 완료!</h2>
-          <p style="margin-top:8px">${name}님의 의견이 정상적으로 접수되었습니다.<br>참여해 주셔서 감사합니다.</p>
+          <p style="margin-top:8px">${displayName}의견이 정상적으로 접수되었습니다.<br>참여해 주셔서 감사합니다.</p>
         </div>`;
+    } else if (res.status === 'duplicate') {
+      showError('이미 응답하셨습니다.', '동일한 이름으로 이미 응답하셨습니다. 중복 제출은 허용되지 않습니다.');
     } else {
       showToast('제출 오류: ' + (res.message||'다시 시도해 주세요.'), 'error');
       btn.disabled = false; btn.textContent = '의견 제출하기';
