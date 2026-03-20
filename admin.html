@@ -706,6 +706,7 @@ function getSurveyUrl(id) {
 function showResult(title, id, url) {
   const card = document.createElement('div');
   card.className = 'card';
+  card.id = 'resultCard';
   card.style.borderColor = '#c5d9c9';
   card.innerHTML = `
     <div class="card-title" style="color:var(--accent)">생성 완료: ${title}</div>
@@ -716,7 +717,13 @@ function showResult(title, id, url) {
       <button class="copy-btn" onclick="window.open('${url}','_blank')">미리보기</button>
     </div>
   `;
-  document.getElementById('tab-create').insertBefore(card, document.querySelector('.tabs').nextElementSibling.nextElementSibling);
+  const existing = document.getElementById('resultCard');
+  const panel = document.getElementById('tab-create');
+  if (existing) {
+    existing.replaceWith(card);
+  } else {
+    panel.insertBefore(card, panel.firstChild);
+  }
   card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
