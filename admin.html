@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>의견조사 관리자</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --border: #e2e0d8;
+    --text: #1a1a18;
+    --text-muted: #7a7870;
+    --accent: #2d5a3d;
+    --accent-light: #e8f0eb;
+    --accent-hover: #234832;
+    --danger: #c0392b;
+    --warning: #e67e22;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 16px; font-weight: 500; letter-spacing: -0.3px; }
+  header span { font-size: 12px; opacity: 0.7; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+  /* GAS URL 설정 */
+  .gas-setup {
+    background: var(--accent-light);
+    border: 1px solid #c5d9c9;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .gas-setup label { font-size: 13px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+  .gas-setup input {
+    flex: 1;
+    border: 1px solid #c5d9c9;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    background: #fff;
+    color: var(--text);
+  }
+  .gas-setup input:focus { outline: none; border-color: var(--accent); }
+  .gas-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .gas-status.ok { color: var(--accent); }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+  .tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* 카드 */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* 폼 요소 */
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .form-group .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  input[type="text"], input[type="date"], textarea, select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 13px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45,90,61,0.08);
+  }
+  textarea { resize: vertical; min-height: 72px; }
+
+  /* 질문 블록 */
+  .question-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+  .question-item {
+    background: #fafaf8;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .question-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .q-num {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .q-type-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .badge-radio { background: #e8f0eb; color: var(--accent); }
+  .badge-text { background: #e8f0fd; color: #4a3abf; }
+  .badge-rating { background: #fef3e8; color: #b45309; }
+  .badge-file { background: #fde8e8; color: #c0392b; }
+  .remove-q-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+  .remove-q-btn:hover { color: var(--danger); }
+
+  .question-item input[type="text"] { margin-bottom: 10px; }
+  .options-area { display: flex; flex-direction: column; gap: 6px; }
+  .option-row { display: flex; gap: 6px; align-items: center; }
+  .option-row input { flex: 1; }
+  .option-row button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px;
+  }
+  .option-row button:hover { color: var(--danger); }
+  .add-option-btn {
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.15s;
+  }
+  .add-option-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* 질문 추가 버튼들 */
+  .add-question-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .add-q-btn {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .add-q-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* 버튼 */
+  .btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-outline {
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .btn-outline:hover { background: var(--accent-light); }
+
+  /* 설문 목록 */
+  .survey-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+  .survey-row-title { font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+  .survey-row-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 14px; }
+  .survey-row-actions { display: flex; gap: 8px; }
+  .link-box {
+    background: #f5f4f0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text-muted);
+    word-break: break-all;
+    margin-top: 8px;
+  }
+  .copy-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    margin-top: 6px;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .count-badge {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .deadline-badge {
+    background: #fef3e8;
+    color: #b45309;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 12px;
+  }
+
+  /* 알림 */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--text);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: var(--accent); }
+  .toast.error { background: var(--danger); }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state p { margin-top: 8px; font-size: 13px; }
+
+  .loading { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+
+  /* 비밀번호 잠금 */
+  #lockScreen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .lock-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
+  .lock-icon {
+    width: 52px;
+    height: 52px;
+    background: var(--accent-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+  }
+  .lock-icon svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .lock-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .lock-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+  .lock-input-wrap { position: relative; margin-bottom: 14px; }
+  .lock-input-wrap input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 40px 11px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    letter-spacing: 4px;
+    text-align: center;
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .lock-input-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,90,61,0.08); }
+  .lock-input-wrap input.error { border-color: var(--danger); animation: shake 0.3s; }
+  .toggle-pw {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 2px;
+  }
+  .lock-error { font-size: 12px; color: var(--danger); height: 18px; margin-bottom: 10px; }
+  .btn-unlock {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-unlock:hover { background: var(--accent-hover); }
+  .lock-hint { font-size: 11px; color: var(--text-muted); margin-top: 16px; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- 비밀번호 잠금 화면 -->
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>관리자 로그인</h2>
+    <p>의견조사 관리자 페이지입니다.<br>비밀번호를 입력하세요.</p>
+    <div class="lock-input-wrap">
+      <input type="password" id="pwInput" placeholder="비밀번호" onkeydown="if(event.key==='Enter')checkPw()" maxlength="20">
+      <button class="toggle-pw" onclick="togglePwVisible()" title="비밀번호 보기">
+        <svg id="eyeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="lock-error" id="lockError"></div>
+    <button class="btn-unlock" onclick="checkPw()">입장하기</button>
+    <div class="lock-hint">비밀번호를 잊으셨다면 admin.html 파일의<br>ADMIN_PASSWORD 값을 확인하세요.</div>
+  </div>
+</div>
+
+<header>
+  <h1>의견조사 관리자</h1>
+  <span>동원테크</span>
+</header>
+
+<div class="container">
+
+  <!-- GAS URL 설정 -->
+  <div class="gas-setup">
+    <label>Apps Script URL</label>
+    <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec 를 여기에 붙여넣으세요" oninput="saveGasUrl()">
+    <span class="gas-status" id="gasStatus">미설정</span>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('create')">설문 만들기</button>
+    <button class="tab-btn" onclick="switchTab('list')">설문 목록</button>
+  </div>
+
+  <!-- 설문 만들기 탭 -->
+  <div class="tab-panel active" id="tab-create">
+    <div class="card">
+      <div class="card-title">안건 기본 정보</div>
+      <div class="form-group">
+        <label>안건 제목 *</label>
+        <input type="text" id="surveyTitle" placeholder="예: 2024년 하반기 워크숍 날짜 선정">
+      </div>
+      <div class="form-group">
+        <label>안건 설명</label>
+        <textarea id="surveyDesc" placeholder="안건에 대한 배경이나 참고사항을 입력하세요"></textarea>
+      </div>
+      <div class="form-group">
+        <label>응답 마감일</label>
+        <input type="date" id="surveyDeadline">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">질문 구성</div>
+
+      <div class="question-list" id="questionList"></div>
+
+      <div class="add-question-btns">
+        <button class="add-q-btn" onclick="addQuestion('radio')">+ 객관식</button>
+        <button class="add-q-btn" onclick="addQuestion('text')">+ 주관식</button>
+        <button class="add-q-btn" onclick="addQuestion('rating')">+ 점수 (1~5점)</button>
+        <button class="add-q-btn" onclick="addQuestion('file')">+ 파일 첨부</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="previewSurvey()">미리보기</button>
+      <button class="btn btn-primary" id="createBtn" onclick="createSurvey()">설문 생성 및 링크 발급</button>
+    </div>
+  </div>
+
+  <!-- 설문 목록 탭 -->
+  <div class="tab-panel" id="tab-list">
+    <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+      <button class="btn btn-outline" onclick="loadSurveys()">새로고침</button>
+    </div>
+    <div id="surveyList"><div class="loading">불러오는 중...</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_PASSWORD = '#tech2002';  // ← 여기서 비밀번호 변경하세요
+
+let questions = [];
+let gasUrl = '';
+
+// 비밀번호 확인
+function checkPw() {
+  const input = document.getElementById('pwInput');
+  const errEl = document.getElementById('lockError');
+  if (input.value === ADMIN_PASSWORD) {
+    sessionStorage.setItem('adminAuth', 'ok');
+    document.getElementById('lockScreen').style.display = 'none';
+    initApp();
+  } else {
+    errEl.textContent = '비밀번호가 올바르지 않습니다.';
+    input.classList.add('error');
+    input.value = '';
+    setTimeout(() => input.classList.remove('error'), 400);
+    input.focus();
+  }
+}
+
+function togglePwVisible() {
+  const input = document.getElementById('pwInput');
+  const icon = document.getElementById('eyeIcon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+// 초기화
+window.onload = () => {
+  // 세션 중 이미 인증했으면 잠금 해제
+  if (sessionStorage.getItem('adminAuth') === 'ok') {
+    document.getElementById('lockScreen').style.display = 'none';
+    initApp();
+  } else {
+    setTimeout(() => document.getElementById('pwInput').focus(), 100);
+  }
+};
+
+function initApp() {
+  gasUrl = localStorage.getItem('gasUrl') || '';
+  if (gasUrl) {
+    document.getElementById('gasUrl').value = gasUrl;
+    document.getElementById('gasStatus').textContent = '설정됨';
+    document.getElementById('gasStatus').className = 'gas-status ok';
+  }
+  // 기본 질문 1개
+  addQuestion('radio');
+  // 마감일 기본값 (오늘+7일)
+  const d = new Date(); d.setDate(d.getDate()+7);
+  document.getElementById('surveyDeadline').value = d.toISOString().split('T')[0];
+}
+
+function saveGasUrl() {
+  gasUrl = document.getElementById('gasUrl').value.trim();
+  localStorage.setItem('gasUrl', gasUrl);
+  const st = document.getElementById('gasStatus');
+  if (gasUrl) { st.textContent = '설정됨'; st.className = 'gas-status ok'; }
+  else { st.textContent = '미설정'; st.className = 'gas-status'; }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['create','list'][i] === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'list') loadSurveys();
+}
+
+// 질문 추가
+function addQuestion(type) {
+  const id = Date.now();
+  questions.push({ id, type, label: '', options: type === 'radio' ? ['',''] : [] });
+  renderQuestions();
+}
+
+function removeQuestion(id) {
+  questions = questions.filter(q => q.id !== id);
+  renderQuestions();
+}
+
+function renderQuestions() {
+  const container = document.getElementById('questionList');
+  if (questions.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = questions.map((q, idx) => {
+    const typeLabel = {radio:'객관식', text:'주관식', rating:'점수', file:'파일첨부'}[q.type];
+    const badgeClass = {radio:'badge-radio', text:'badge-text', rating:'badge-rating', file:'badge-file'}[q.type];
+    let bodyHtml = '';
+    if (q.type === 'radio') {
+      bodyHtml = `<div class="options-area" id="opts-${q.id}">
+        ${q.options.map((opt, oi) => `
+          <div class="option-row">
+            <input type="text" value="${opt}" placeholder="선택지 ${oi+1}" onchange="updateOption(${q.id},${oi},this.value)">
+            <button onclick="removeOption(${q.id},${oi})" title="삭제">×</button>
+          </div>`).join('')}
+        <button class="add-option-btn" onclick="addOption(${q.id})">+ 선택지 추가</button>
+      </div>`;
+    } else if (q.type === 'text') {
+      bodyHtml = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">직원이 자유롭게 텍스트를 입력합니다.</div>`;
+    } else if (q.type === 'rating') {
+      bodyHtml = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">1점 ~ 5점 중 선택합니다.</div>`;
+    } else if (q.type === 'file') {
+      bodyHtml = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">파일을 첨부할 수 있습니다. (파일명만 기록됩니다)</div>`;
+    }
+    return `
+      <div class="question-item">
+        <div class="question-item-header">
+          <span class="q-num">${idx+1}</span>
+          <span class="q-type-badge ${badgeClass}">${typeLabel}</span>
+          <button class="remove-q-btn" onclick="removeQuestion(${q.id})">×</button>
+        </div>
+        <input type="text" value="${q.label}" placeholder="질문 내용을 입력하세요" onchange="updateLabel(${q.id},this.value)" style="margin-bottom:10px">
+        ${bodyHtml}
+      </div>`;
+  }).join('');
+}
+
+function updateLabel(id, val) { const q = questions.find(q=>q.id===id); if(q) q.label = val; }
+function updateOption(qId, oi, val) { const q = questions.find(q=>q.id===qId); if(q) q.options[oi] = val; }
+function addOption(qId) { const q = questions.find(q=>q.id===qId); if(q) { q.options.push(''); renderQuestions(); } }
+function removeOption(qId, oi) { const q = questions.find(q=>q.id===qId); if(q && q.options.length > 2) { q.options.splice(oi,1); renderQuestions(); } else { showToast('선택지는 최소 2개가 필요합니다.','error'); } }
+
+// 설문 생성
+async function createSurvey() {
+  const title = document.getElementById('surveyTitle').value.trim();
+  if (!title) { showToast('안건 제목을 입력하세요.','error'); return; }
+  if (!gasUrl) { showToast('Apps Script URL을 먼저 설정하세요.','error'); return; }
+  if (questions.length === 0) { showToast('질문을 1개 이상 추가하세요.','error'); return; }
+
+  // 질문 현재 input값 동기화
+  document.querySelectorAll('.question-item').forEach((el, idx) => {
+    const q = questions[idx];
+    const labelInput = el.querySelector('input[type="text"]');
+    if (labelInput) q.label = labelInput.value;
+    if (q.type === 'radio') {
+      el.querySelectorAll('.option-row input').forEach((inp, oi) => { q.options[oi] = inp.value; });
+    }
+  });
+
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true; btn.textContent = '생성 중...';
+
+  try {
+    const payload = {
+      action: 'create_survey',
+      title,
+      description: document.getElementById('surveyDesc').value.trim(),
+      questions: questions.map(q => ({ type: q.type, label: q.label, options: q.options })),
+      deadline: document.getElementById('surveyDeadline').value
+    };
+    const res = await callGAS(payload);
+    if (res.status === 'ok') {
+      const surveyUrl = getSurveyUrl(res.id);
+      showResult(title, res.id, surveyUrl);
+      showToast('설문이 생성되었습니다!', 'success');
+    } else {
+      showToast('오류: ' + (res.message||'알 수 없는 오류'), 'error');
+    }
+  } catch(e) {
+    showToast('연결 오류. Apps Script URL을 확인하세요.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '설문 생성 및 링크 발급';
+  }
+}
+
+function getSurveyUrl(id) {
+  const base = window.location.href.replace('admin.html','survey.html');
+  return base + '?id=' + id + '&gas=' + encodeURIComponent(gasUrl);
+}
+
+function showResult(title, id, url) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.borderColor = '#c5d9c9';
+  card.innerHTML = `
+    <div class="card-title" style="color:var(--accent)">생성 완료: ${title}</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">아래 링크를 카카오톡 단톡방에 공유하세요.</p>
+    <div class="link-box">${url}</div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="copy-btn" onclick="copyLink('${url}')">링크 복사</button>
+      <button class="copy-btn" onclick="window.open('${url}','_blank')">미리보기</button>
+    </div>
+  `;
+  document.getElementById('tab-create').insertBefore(card, document.querySelector('.tabs').nextElementSibling.nextElementSibling);
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url).then(() => showToast('링크가 복사되었습니다!', 'success'));
+}
+
+function previewSurvey() {
+  showToast('설문을 먼저 생성하면 미리보기 링크가 제공됩니다.', '');
+}
+
+// 설문 목록 로드
+async function loadSurveys() {
+  const container = document.getElementById('surveyList');
+  if (!gasUrl) {
+    container.innerHTML = '<div class="empty-state"><strong>Apps Script URL을 먼저 설정하세요.</strong><p>상단의 URL 입력란에 배포된 URL을 붙여넣어 주세요.</p></div>';
+    return;
+  }
+  container.innerHTML = '<div class="loading">불러오는 중...</div>';
+  try {
+    const res = await callGAS({ action: 'get_results' });
+    if (res.status === 'ok' && res.surveys.length > 0) {
+      container.innerHTML = res.surveys.reverse().map(s => {
+        const url = getSurveyUrl(s.id);
+        return `
+          <div class="survey-row">
+            <div>
+              <div class="survey-row-title">${s.title}</div>
+              <div class="survey-row-meta">
+                <span>생성: ${s.created}</span>
+                <span class="deadline-badge">마감: ${s.deadline || '미설정'}</span>
+                <span class="count-badge">응답 ${s.count}건</span>
+              </div>
+              <div class="link-box" style="margin-top:8px">${url}</div>
+              <button class="copy-btn" onclick="copyLink('${url}')">링크 복사</button>
+              <button class="copy-btn" style="margin-left:4px" onclick="window.open('${url}','_blank')">설문 열기</button>
+            </div>
+          </div>`;
+      }).join('');
+    } else {
+      container.innerHTML = '<div class="empty-state"><strong>등록된 설문이 없습니다.</strong><p>설문 만들기 탭에서 새 설문을 생성하세요.</p></div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state"><strong>불러오기 실패</strong><p>Apps Script URL을 확인하세요.</p></div>';
+  }
+}
+
+// GAS 호출 (CORS 우회: no-cors 불가하므로 fetch POST)
+async function callGAS(payload) {
+  const res = await fetch(gasUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>의견조사</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --border: #e2e0d8;
+    --text: #1a1a18;
+    --text-muted: #7a7870;
+    --accent: #2d5a3d;
+    --accent-light: #e8f0eb;
+    --accent-hover: #234832;
+    --danger: #c0392b;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 15px; font-weight: 500; }
+  header span { font-size: 12px; opacity: 0.65; }
+
+  .container { max-width: 640px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* 안건 헤더 */
+  .survey-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .survey-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .survey-header p { font-size: 14px; color: var(--text-muted); line-height: 1.7; white-space: pre-wrap; }
+  .deadline-info {
+    margin-top: 14px;
+    font-size: 12px;
+    color: #b45309;
+    background: #fef3e8;
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: inline-block;
+  }
+
+  /* 응답자 이름 */
+  .respondent-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .respondent-card label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 8px; }
+
+  /* 질문 카드 */
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+    transition: border-color 0.15s;
+  }
+  .question-card.required-error { border-color: var(--danger); }
+  .question-label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .q-idx {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* 객관식 */
+  .radio-options { display: flex; flex-direction: column; gap: 10px; }
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .radio-option:hover { border-color: var(--accent); background: var(--accent-light); }
+  .radio-option input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+  .radio-option label { cursor: pointer; font-size: 14px; flex: 1; }
+  .radio-option.selected { border-color: var(--accent); background: var(--accent-light); }
+
+  /* 주관식 */
+  textarea.answer-text {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color 0.15s;
+  }
+  textarea.answer-text:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,90,61,0.08); }
+
+  /* 점수 */
+  .rating-wrap { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .rating-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-muted);
+  }
+  .rating-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .rating-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .rating-label { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+
+  /* 파일 첨부 */
+  .file-wrap {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .file-wrap:hover { border-color: var(--accent); color: var(--accent); }
+  .file-wrap input[type="file"] { display: none; }
+  .file-name { margin-top: 8px; font-size: 12px; color: var(--accent); font-weight: 500; }
+
+  /* 입력 공통 */
+  input[type="text"] {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,90,61,0.08); }
+
+  /* 제출 버튼 */
+  .submit-area { margin-top: 24px; }
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: -0.3px;
+  }
+  .btn-submit:hover { background: var(--accent-hover); }
+  .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+
+  /* 상태 화면 */
+  .state-screen {
+    text-align: center;
+    padding: 80px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .state-icon { font-size: 48px; margin-bottom: 16px; }
+  .state-screen h2 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+  .state-screen p { font-size: 14px; color: var(--text-muted); }
+
+  .error-msg { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
+  .error-msg.show { display: block; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--text);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.25s;
+    z-index: 999;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--accent); }
+  .toast.error { background: var(--danger); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>의견조사</h1>
+  <span>동원테크</span>
+</header>
+
+<div class="container" id="mainContainer">
+  <div class="state-screen">
+    <div class="state-icon">⏳</div>
+    <h2>설문을 불러오는 중...</h2>
+    <p>잠시만 기다려 주세요.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let surveyData = null;
+let answers = {};
+let gasUrl = '';
+let surveyId = '';
+
+window.onload = async () => {
+  const params = new URLSearchParams(window.location.search);
+  surveyId = params.get('id');
+  gasUrl = params.get('gas');
+
+  if (!surveyId || !gasUrl) {
+    showError('잘못된 링크입니다.', '관리자에게 올바른 링크를 요청하세요.');
+    return;
+  }
+
+  try {
+    const res = await callGAS({ action: 'get_survey', id: surveyId });
+    if (res.status === 'ok') {
+      surveyData = res;
+      renderSurvey();
+    } else {
+      showError('설문을 찾을 수 없습니다.', res.message || '링크가 만료되었거나 존재하지 않는 설문입니다.');
+    }
+  } catch(e) {
+    showError('연결 오류', '네트워크 상태를 확인하고 다시 시도해주세요.');
+  }
+};
+
+function renderSurvey() {
+  const d = surveyData;
+  const deadlineHtml = d.deadline
+    ? `<div class="deadline-info">마감일: ${d.deadline}</div>`
+    : '';
+
+  const questionsHtml = d.questions.map((q, idx) => {
+    let inputHtml = '';
+    if (q.type === 'radio') {
+      inputHtml = `<div class="radio-options">
+        ${q.options.map((opt, oi) => `
+          <div class="radio-option" id="opt-${idx}-${oi}" onclick="selectRadio(${idx},${oi},'${opt}')">
+            <input type="radio" name="q${idx}" id="r${idx}-${oi}">
+            <label for="r${idx}-${oi}">${opt}</label>
+          </div>`).join('')}
+      </div>`;
+    } else if (q.type === 'text') {
+      inputHtml = `<textarea class="answer-text" placeholder="의견을 입력해 주세요" oninput="answers[${idx}]=this.value"></textarea>`;
+    } else if (q.type === 'rating') {
+      inputHtml = `<div class="rating-wrap">
+        ${[1,2,3,4,5].map(n => `<button class="rating-btn" id="rat-${idx}-${n}" onclick="selectRating(${idx},${n})">${n}</button>`).join('')}
+        <span class="rating-label">점</span>
+      </div>`;
+    } else if (q.type === 'file') {
+      inputHtml = `<div class="file-wrap" onclick="document.getElementById('file-${idx}').click()">
+        <input type="file" id="file-${idx}" onchange="handleFile(${idx},this)">
+        <div>파일을 선택하려면 여기를 탭하세요</div>
+        <div class="file-name" id="fname-${idx}"></div>
+      </div>`;
+    }
+
+    return `
+      <div class="question-card" id="qcard-${idx}">
+        <div class="question-label">
+          <span class="q-idx">${idx+1}</span>
+          <span>${q.label || '(질문 없음)'}</span>
+        </div>
+        ${inputHtml}
+        <div class="error-msg" id="err-${idx}">이 질문에 답해주세요.</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('mainContainer').innerHTML = `
+    <div class="survey-header">
+      <h2>${d.title}</h2>
+      ${d.description ? `<p>${d.description}</p>` : ''}
+      ${deadlineHtml}
+    </div>
+
+    <div class="respondent-card">
+      <label>이름 *</label>
+      <input type="text" id="respondentName" placeholder="본인 이름을 입력하세요">
+      <div class="error-msg" id="err-name">이름을 입력해 주세요.</div>
+    </div>
+
+    ${questionsHtml}
+
+    <div class="submit-area">
+      <button class="btn-submit" id="submitBtn" onclick="submitSurvey()">의견 제출하기</button>
+    </div>
+  `;
+}
+
+function selectRadio(qIdx, optIdx, val) {
+  answers[qIdx] = val;
+  document.querySelectorAll(`[id^="opt-${qIdx}-"]`).forEach(el => el.classList.remove('selected'));
+  document.getElementById(`opt-${qIdx}-${optIdx}`).classList.add('selected');
+  document.getElementById(`r${qIdx}-${optIdx}`).checked = true;
+  hideError(qIdx);
+}
+
+function selectRating(qIdx, val) {
+  answers[qIdx] = val;
+  [1,2,3,4,5].forEach(n => {
+    document.getElementById(`rat-${qIdx}-${n}`).classList.toggle('selected', n === val);
+  });
+  hideError(qIdx);
+}
+
+function handleFile(qIdx, input) {
+  if (input.files[0]) {
+    answers[qIdx] = input.files[0].name;
+    document.getElementById(`fname-${qIdx}`).textContent = input.files[0].name;
+    hideError(qIdx);
+  }
+}
+
+function hideError(qIdx) {
+  const el = document.getElementById(`err-${qIdx}`);
+  if (el) { el.classList.remove('show'); document.getElementById(`qcard-${qIdx}`).classList.remove('required-error'); }
+}
+
+async function submitSurvey() {
+  const name = document.getElementById('respondentName').value.trim();
+  let valid = true;
+
+  // 이름 검증
+  if (!name) {
+    document.getElementById('err-name').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('err-name').classList.remove('show');
+  }
+
+  // 질문 검증 (텍스트는 선택)
+  surveyData.questions.forEach((q, idx) => {
+    if (q.type !== 'text' && (answers[idx] === undefined || answers[idx] === '')) {
+      document.getElementById(`err-${idx}`).classList.add('show');
+      document.getElementById(`qcard-${idx}`).classList.add('required-error');
+      valid = false;
+    }
+  });
+
+  if (!valid) { showToast('필수 항목을 모두 입력해 주세요.', 'error'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '제출 중...';
+
+  try {
+    const questionLabels = surveyData.questions.map(q => q.label);
+    const answersArr = surveyData.questions.map((q, idx) => answers[idx] !== undefined ? String(answers[idx]) : '');
+
+    const res = await callGAS({
+      action: 'submit_response',
+      surveyId,
+      respondent: name,
+      questionLabels,
+      answers: answersArr
+    });
+
+    if (res.status === 'ok') {
+      document.getElementById('mainContainer').innerHTML = `
+        <div class="state-screen">
+          <div class="state-icon">✅</div>
+          <h2>제출 완료!</h2>
+          <p style="margin-top:8px">${name}님의 의견이 정상적으로 접수되었습니다.<br>참여해 주셔서 감사합니다.</p>
+        </div>`;
+    } else {
+      showToast('제출 오류: ' + (res.message||'다시 시도해 주세요.'), 'error');
+      btn.disabled = false; btn.textContent = '의견 제출하기';
+    }
+  } catch(e) {
+    showToast('네트워크 오류. 다시 시도해 주세요.', 'error');
+    btn.disabled = false; btn.textContent = '의견 제출하기';
+  }
+}
+
+function showError(title, msg) {
+  document.getElementById('mainContainer').innerHTML = `
+    <div class="state-screen">
+      <div class="state-icon">⚠️</div>
+      <h2>${title}</h2>
+      <p>${msg}</p>
+    </div>`;
+}
+
+async function callGAS(payload) {
+  const res = await fetch(gasUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+</script>
+</body>
+</html>
