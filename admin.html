@@ -352,6 +352,36 @@
 
   .loading { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
 
+  /* 참고자료 */
+  .ref-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .ref-item input[type="text"] { flex: 1; }
+  .ref-item input.ref-url { flex: 2; }
+  .ref-remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+  .ref-remove-btn:hover { color: var(--danger); }
+  .ref-header {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .ref-header span { font-size: 11px; color: var(--text-muted); }
+  .ref-header span:first-child { flex: 1; }
+  .ref-header span:last-child { flex: 2; }
+
   /* 비밀번호 잠금 */
   #lockScreen {
     position: fixed;
@@ -510,6 +540,17 @@
     </div>
 
     <div class="card">
+      <div class="card-title">참고 자료</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">응답자가 설문 페이지에서 확인할 수 있는 자료를 첨부하세요. (선택사항)</p>
+      <div class="ref-header">
+        <span>자료 제목</span>
+        <span>링크 (URL)</span>
+      </div>
+      <div id="refList"></div>
+      <button class="add-option-btn" onclick="addRef()" style="margin-top:4px">+ 자료 추가</button>
+    </div>
+
+    <div class="card">
       <div class="card-title">질문 구성</div>
 
       <div class="question-list" id="questionList"></div>
@@ -587,6 +628,45 @@ window.onload = () => {
 };
 
 let surveyAnonymous = false;
+let refs = [];
+
+function addRef() {
+  const id = Date.now();
+  refs.push({ id, name: '', url: '' });
+  renderRefs();
+}
+
+function removeRef(id) {
+  refs = refs.filter(r => r.id !== id);
+  renderRefs();
+}
+
+function renderRefs() {
+  const container = document.getElementById('refList');
+  if (refs.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = refs.map(r => `
+    <div class="ref-item">
+      <input type="text" class="ref-name" placeholder="예: 현재 도면 파일" value="${r.name}" onchange="updateRef(${r.id},'name',this.value)">
+      <input type="text" class="ref-url" placeholder="https://..." value="${r.url}" onchange="updateRef(${r.id},'url',this.value)">
+      <button class="ref-remove-btn" onclick="removeRef(${r.id})">×</button>
+    </div>`).join('');
+}
+
+function updateRef(id, field, val) {
+  const r = refs.find(r => r.id === id);
+  if (r) r[field] = val;
+}
+
+function getAttachments() {
+  // DOM에서 최신값 동기화
+  document.querySelectorAll('.ref-item').forEach((el, idx) => {
+    if (refs[idx]) {
+      refs[idx].name = el.querySelector('.ref-name').value.trim();
+      refs[idx].url = el.querySelector('.ref-url').value.trim();
+    }
+  });
+  return refs.filter(r => r.url).map(r => ({ name: r.name || r.url, url: r.url }));
+}
 
 function formatKST(date) {
   return date.toLocaleString('ko-KR', {
@@ -709,7 +789,8 @@ async function createSurvey() {
       questions: questions.map(q => ({ type: q.type, label: q.label, options: q.options })),
       deadline: deadlineVal ? new Date(deadlineVal).toISOString() : '',
       deadlineDisplay: deadlineVal ? formatKST(new Date(deadlineVal)) : '',
-      anonymous: surveyAnonymous
+      anonymous: surveyAnonymous,
+      attachments: getAttachments()
     };
     const res = await callGAS(payload);
     if (res.status === 'ok') {

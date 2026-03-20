@@ -219,6 +219,63 @@
   .state-screen h2 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
   .state-screen p { font-size: 14px; color: var(--text-muted); }
 
+  /* 참고자료 */
+  .ref-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .ref-section-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ref-section-title::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .ref-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 8px;
+    transition: all 0.15s;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+  .ref-btn:hover { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+  .ref-btn-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent-light);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .ref-btn-icon svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ref-btn-name { font-weight: 500; font-size: 13px; }
+  .ref-btn-url { font-size: 11px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+
   .error-msg { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
   .error-msg.show { display: block; }
 
@@ -361,12 +418,29 @@ function renderSurvey() {
       </div>`;
   }).join('');
 
+  const attachmentsHtml = (d.attachments && d.attachments.length > 0) ? `
+    <div class="ref-section">
+      <div class="ref-section-title">참고 자료</div>
+      ${d.attachments.map(a => `
+        <a class="ref-btn" href="${a.url}" target="_blank" rel="noopener">
+          <div class="ref-btn-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div>
+            <div class="ref-btn-name">${a.name}</div>
+            <div class="ref-btn-url">${a.url}</div>
+          </div>
+        </a>`).join('')}
+    </div>` : '';
+
   document.getElementById('mainContainer').innerHTML = `
     <div class="survey-header">
       <h2>${d.title}</h2>
       ${d.description ? `<p>${d.description}</p>` : ''}
       ${deadlineHtml}
     </div>
+
+    ${attachmentsHtml}
 
     ${!d.anonymous ? `
     <div class="respondent-card">
